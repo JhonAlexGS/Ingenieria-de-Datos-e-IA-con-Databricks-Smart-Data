@@ -1,0 +1,122 @@
+name: Deploy ETL Instacart a Produccion
+
+# Se ejecuta con cada push a main o de forma manual desde Actions
+on:
+  push:
+    branches: [main]
+    paths:
+      - "proceso/**"
+      - ".github/workflows/deploy-prod.yml"
+  workflow_dispatch:
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+  CLUSTER_ID: ${{ secrets.DATABRICKS_CLUSTER_ID }}
+  STORAGE_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}
+  CATALOGO: catalog_prod
+  CREDENTIAL: cred_instacart_jhon_garcia_15_nov
+  NOTEBOOK_DIR: /Shared/instacart/prod
+  JOB_FILE: proceso/workflow/wf_etl_instacart.json
+
+jobs:
+  deploy:
+    name: Desplegar notebooks y Workflow
+    runs-on: ubuntu-latest
+    outputs:
+      job_id: ${{ steps.job.outputs.job_id }}
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Validar secretos
+        run: |
+          for v in DATABRICKS_HOST DATABRICKS_TOKEN CLUSTER_ID STORAGE_NAME; do
+            if [ -z "${!v}" ]; then echo "::error::Falta el secret para $v"; exit 1; fi
+          done
+          echo "Secretos OK"
+
+      - name: Importar notebooks de proceso/ al workspace (${{ env.NOTEBOOK_DIR }})
+        run: |
+          set -euo pipefail
+          curl -sS --fail-with-body -X POST "$DATABRICKS_HOST/api/2.0/workspace/mkdirs" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            -d "{\"path\": \"$NOTEBOOK_DIR\"}"
+
+          for file in proceso/*.ipynb; do
+            name=$(basename "$file" .ipynb)
+            echo "Importando $file a $NOTEBOOK_DIR/$name"
+            jq -n --arg path "$NOTEBOOK_DIR/$name" --arg content "$(base64 -w0 "$file")" \
+              '{path: $path, format: "JUPYTER", overwrite: true, content: $content}' \
+            | curl -sS --fail-with-body -X POST "$DATABRICKS_HOST/api/2.0/workspace/import" \
+                -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+                -H "Content-Type: application/json" -d @-
+          done
+          echo "Notebooks desplegados"
+
+      - name: Generar definición del Workflow para prod
+        run: |
+          sed -e "s|__NOTEBOOK_DIR__|$NOTEBOOK_DIR|g" \
+              -e "s|__CLUSTER_ID__|$CLUSTER_ID|g" \
+              -e "s|__CATALOGO__|$CATALOGO|g" \
+              -e "s|__STORAGE__|$STORAGE_NAME|g" \
+              -e "s|__CREDENTIAL__|$CREDENTIAL|g" \
+              "$JOB_FILE" > job_prod.json
+          jq empty job_prod.json && echo "JSON válido"
+
+      - name: Crear o actualizar el Job
+        id: job
+        run: |
+          set -euo pipefail
+          JOB_NAME=$(jq -r .name job_prod.json)
+          JOB_ID=$(curl -sS --fail-with-body -G "$DATABRICKS_HOST/api/2.1/jobs/list" \
+                    -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+                    --data-urlencode "name=$JOB_NAME" | jq -r '.jobs[0].job_id // empty')
+
+          if [ -z "$JOB_ID" ]; then
+            echo "Creando job $JOB_NAME"
+            JOB_ID=$(curl -sS --fail-with-body -X POST "$DATABRICKS_HOST/api/2.1/jobs/create" \
+                      -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+                      -H "Content-Type: application/json" -d @job_prod.json | jq -r .job_id)
+          else
+            echo "Actualizando job existente $JOB_ID"
+            jq --argjson id "$JOB_ID" '{job_id: $id, new_settings: .}' job_prod.json \
+            | curl -sS --fail-with-body -X POST "$DATABRICKS_HOST/api/2.1/jobs/reset" \
+                -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+                -H "Content-Type: application/json" -d @-
+          fi
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+          echo "Job ID: $JOB_ID"
+
+  run:
+    name: Ejecutar Workflow en prod
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lanzar ejecución y esperar resultado
+        env:
+          JOB_ID: ${{ needs.deploy.outputs.job_id }}
+        run: |
+          set -euo pipefail
+          RUN_ID=$(curl -sS --fail-with-body -X POST "$DATABRICKS_HOST/api/2.1/jobs/run-now" \
+                    -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"job_id\": $JOB_ID}" | jq -r .run_id)
+          echo "Run ID: $RUN_ID  ->  $DATABRICKS_HOST/#job/$JOB_ID/run/$RUN_ID"
+
+          # Se consulta el estado cada 30 segundos (maximo 60 minutos)
+          for i in $(seq 1 120); do
+            RUN=$(curl -sS --fail-with-body -G "$DATABRICKS_HOST/api/2.1/jobs/runs/get" \
+                    -H "Authorization: Bearer $DATABRICKS_TOKEN" --data-urlencode "run_id=$RUN_ID")
+            LIFE=$(echo "$RUN" | jq -r .state.life_cycle_state)
+            RESULT=$(echo "$RUN" | jq -r '.state.result_state // "-"')
+            echo "[$(date +%H:%M:%S)] estado=$LIFE resultado=$RESULT"
+            echo "$RUN" | jq -r '.tasks[]? | "   - \(.task_key): \(.state.life_cycle_state) \(.state.result_state // "")"'
+            case "$LIFE" in
+              TERMINATED|SKIPPED|INTERNAL_ERROR)
+                if [ "$RESULT" = "SUCCESS" ]; then echo "Workflow ejecutado correctamente"; exit 0; fi
+                echo "::error::El workflow terminó con resultado $RESULT"; exit 1 ;;
+            esac
+            sleep 30
+          done
+          echo "::error::Tiempo de espera agotado"; exit 1
