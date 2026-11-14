@@ -72,7 +72,7 @@ Observaciones sobre los archivos:
 - El separador es `;` y en `products.csv` cada línea termina con un `;` adicional.
 - Algunos nombres de productos tienen comillas escapadas.
 - Los pasillos y departamentos sin clasificar aparecen como `missing`.
-- Los archivos más grandes están cortados en 1 048 576 líneas (límite de Excel), por lo que muchas líneas de `order_products` no tienen su orden en `orders.csv`. En silver se cuentan esas líneas, se registran en el log y se descartan.
+- Los archivos más grandes están cortados en 1 048 576 líneas (límite de Excel), por lo que muchas líneas de `order_products` no tienen su orden en `orders.csv`. En silver se cuentan esas líneas, se registran en el log y se descartan. En la ejecución se descartaron 1 458 558 de 2 097 150 líneas (69.5 %) y quedaron 638 592 registros en `silver.detalle_ordenes`.
 
 ## ETL
 
@@ -195,4 +195,4 @@ El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golde
 | Catálogos y tablas | `evidencias/04_unity_catalog.png` |
 | Ejecución de GitHub Actions | `evidencias/05_github_actions.png` |
 | Ejecución del workflow en producción | `evidencias/06_workflow_prod.png` |
-| Grants y Delta Sharing | `evidencias/07_grants_delta_sharing.png` |
+| Grants por grupo | `evidencias/07_grants.png` |
