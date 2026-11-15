@@ -1,0 +1,124 @@
+{
+  "name": "wf_etl_instacart_prod",
+  "description": "ETL medallion Instacart (bronze -> silver -> golden). Desplegado por GitHub Actions.",
+  "format": "MULTI_TASK",
+  "max_concurrent_runs": 1,
+  "timeout_seconds": 7200,
+  "tags": {
+    "environment": "production",
+    "project": "instacart_medallion",
+    "created_by": "github_actions"
+  },
+  "schedule": {
+    "quartz_cron_expression": "0 0 7 * * ?",
+    "timezone_id": "America/Lima",
+    "pause_status": "PAUSED"
+  },
+  "email_notifications": {
+    "on_failure": [],
+    "no_alert_for_skipped_runs": true
+  },
+  "tasks": [
+    {
+      "task_key": "prep_ambiente",
+      "description": "Crea external locations, catalogo, schemas y tablas",
+      "notebook_task": {
+        "notebook_path": "__NOTEBOOK_DIR__/01_prep_ambiente",
+        "source": "WORKSPACE",
+        "base_parameters": { "catalogo": "__CATALOGO__", "storage_name": "__STORAGE__", "storage_credential": "__CREDENTIAL__" }
+      },
+      "existing_cluster_id": "__CLUSTER_ID__",
+      "timeout_seconds": 1800,
+      "max_retries": 1
+    },
+    {
+      "task_key": "ingest_orders",
+      "depends_on": [{ "task_key": "prep_ambiente" }],
+      "notebook_task": {
+        "notebook_path": "__NOTEBOOK_DIR__/02_ingest_orders",
+        "source": "WORKSPACE",
+        "base_parameters": { "catalogo": "__CATALOGO__", "storage_name": "__STORAGE__" }
+      },
+      "existing_cluster_id": "__CLUSTER_ID__",
+      "timeout_seconds": 1800,
+      "max_retries": 2
+    },
+    {
+      "task_key": "ingest_order_products",
+      "depends_on": [{ "task_key": "prep_ambiente" }],
+      "notebook_task": {
+        "notebook_path": "__NOTEBOOK_DIR__/02_ingest_order_products",
+        "source": "WORKSPACE",
+        "base_parameters": { "catalogo": "__CATALOGO__", "storage_name": "__STORAGE__" }
+      },
+      "existing_cluster_id": "__CLUSTER_ID__",
+      "timeout_seconds": 1800,
+      "max_retries": 2
+    },
+    {
+      "task_key": "ingest_products",
+      "depends_on": [{ "task_key": "prep_ambiente" }],
+      "notebook_task": {
+        "notebook_path": "__NOTEBOOK_DIR__/02_ingest_products",
+        "source": "WORKSPACE",
+        "base_parameters": { "catalogo": "__CATALOGO__", "storage_name": "__STORAGE__" }
+      },
+      "existing_cluster_id": "__CLUSTER_ID__",
+      "timeout_seconds": 1800,
+      "max_retries": 2
+    },
+    {
+      "task_key": "ingest_aisles_departments",
+      "depends_on": [{ "task_key": "prep_ambiente" }],
+      "notebook_task": {
+        "notebook_path": "__NOTEBOOK_DIR__/02_ingest_aisles_departments",
+        "source": "WORKSPACE",
+        "base_parameters": { "catalogo": "__CATALOGO__", "storage_name": "__STORAGE__" }
+      },
+      "existing_cluster_id": "__CLUSTER_ID__",
+      "timeout_seconds": 1800,
+      "max_retries": 2
+    },
+    {
+      "task_key": "transform_silver",
+      "depends_on": [
+        { "task_key": "ingest_orders" },
+        { "task_key": "ingest_order_products" },
+        { "task_key": "ingest_products" },
+        { "task_key": "ingest_aisles_departments" }
+      ],
+      "notebook_task": {
+        "notebook_path": "__NOTEBOOK_DIR__/03_transform",
+        "source": "WORKSPACE",
+        "base_parameters": { "catalogo": "__CATALOGO__", "storage_name": "__STORAGE__" }
+      },
+      "existing_cluster_id": "__CLUSTER_ID__",
+      "timeout_seconds": 3600,
+      "max_retries": 1
+    },
+    {
+      "task_key": "load_golden",
+      "depends_on": [{ "task_key": "transform_silver" }],
+      "notebook_task": {
+        "notebook_path": "__NOTEBOOK_DIR__/04_load",
+        "source": "WORKSPACE",
+        "base_parameters": { "catalogo": "__CATALOGO__", "storage_name": "__STORAGE__" }
+      },
+      "existing_cluster_id": "__CLUSTER_ID__",
+      "timeout_seconds": 3600,
+      "max_retries": 1
+    },
+    {
+      "task_key": "grants",
+      "depends_on": [{ "task_key": "load_golden" }],
+      "notebook_task": {
+        "notebook_path": "__NOTEBOOK_DIR__/05_grants",
+        "source": "WORKSPACE",
+        "base_parameters": { "catalogo": "__CATALOGO__" }
+      },
+      "existing_cluster_id": "__CLUSTER_ID__",
+      "timeout_seconds": 600,
+      "max_retries": 1
+    }
+  ]
+}
