@@ -182,6 +182,10 @@ Delta Sharing permite compartir tablas de Unity Catalog con alguien que no tiene
 - `delta-sharing/delta_sharing.ipynb`: crea el share `share_instacart_golden`, agrega las tablas, crea el recipient `recipient_area_comercial` y le otorga SELECT.
 - `delta-sharing/delta_sharing_sql.ipynb`: versión en SQL.
 
+Las tablas se agregan `WITH HISTORY` porque tienen deletion vectors activos, que Databricks habilita por defecto, y Delta Sharing exige compartir el historial en ese caso.
+
+En la ejecución sobre `catalog_prod` se creó el share con las tres tablas de golden (`kpi_departamentos`, `top_productos` y `actividad_dia_hora`). La creación del recipient externo no se completó porque el metastore tiene deshabilitado External OpenSharing; esa opción solo se activa desde la consola de la cuenta de Databricks, a la que no se pudo acceder con una cuenta personal de Microsoft.
+
 ## Reversión
 
 - `reversion/drop_medallion.ipynb`: elimina las tablas, sus carpetas en el Data Lake, el checkpoint de Auto Loader y los schemas. Opcionalmente elimina el catálogo. Se ejecuta automáticamente desde GitHub Actions cuando falla el despliegue a producción.
@@ -235,3 +239,4 @@ Todos los scripts son notebooks `.ipynb`. Los de `proceso/` están en PySpark; l
 | Ejecución de GitHub Actions | `evidencias/05_github_actions.png` |
 | Ejecución del workflow en producción | `evidencias/06_workflow_prod.png`, `evidencias/06_workflow_prod2.png` |
 | Grants por grupo | `evidencias/07_grants.png` |
+| Delta Sharing | `evidencias/08_delta_sharing.png`, `evidencias/08_delta_sharing_metastore.png` |
