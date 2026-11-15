@@ -4,6 +4,26 @@ Proyecto final del curso Ingeniería de Datos e IA con Databricks.
 
 Se desarrolló un ETL en Azure Databricks con arquitectura medallion (bronze, silver y golden) usando PySpark. Los datos se leen desde un Azure Data Lake Storage Gen2 mediante Managed Identity, las tablas se gobiernan con Unity Catalog y el despliegue a producción se realiza con GitHub Actions. Los resultados se muestran en un dashboard de Databricks.
 
+## Índice
+
+1. [Objetivo](#objetivo)
+2. [Arquitectura](#arquitectura)
+   - [Cluster](#cluster)
+3. [Dataset](#dataset)
+4. [ETL](#etl)
+   - [Bronze](#bronze-proceso02_ingest_)
+   - [Silver](#silver-proceso03_transform)
+   - [Golden](#golden-proceso04_load)
+5. [Workflow](#workflow)
+6. [CI/CD](#cicd)
+7. [Seguridad](#seguridad)
+   - [Delta Sharing](#delta-sharing)
+8. [Reversión](#reversión)
+9. [Dashboard](#dashboard)
+10. [Estructura del repositorio](#estructura-del-repositorio)
+11. [Pasos para el despliegue](#pasos-para-el-despliegue)
+12. [Evidencias](#evidencias)
+
 ## Objetivo
 
 Con los datos de órdenes de un supermercado online se buscó responder:
