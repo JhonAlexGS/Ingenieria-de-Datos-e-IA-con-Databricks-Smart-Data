@@ -1,0 +1,265 @@
+{
+  "datasets": [
+    {
+      "name": "92a9e68f",
+      "displayName": "Ventas y recompra por departamento",
+      "queryLines": [
+        "-- Ventas y recompra por departamento\r\n",
+        "SELECT departamento, total_productos_vendidos, \r\n",
+        "    participacion_pct, tasa_recompra\r\n",
+        "FROM catalog_prod.golden.kpi_departamentos\r\n",
+        "ORDER BY total_productos_vendidos DESC;"
+      ]
+    },
+    {
+      "name": "7accd691",
+      "displayName": "Ordenes por dia y hora",
+      "queryLines": [
+        "-- Ordenes por dia y hora\r\n",
+        "SELECT dia_semana_num, dia_semana, hora_dia, total_ordenes\r\n",
+        "FROM catalog_prod.golden.actividad_dia_hora\r\n",
+        "ORDER BY dia_semana_num, hora_dia;"
+      ]
+    },
+    {
+      "name": "43a0bdb7",
+      "displayName": "Segmentos de clientes",
+      "queryLines": [
+        "-- Segmentos de clientes\r\n",
+        "SELECT segmento,\r\n",
+        "       COUNT(*) AS clientes,\r\n",
+        "       ROUND(AVG(promedio_productos_orden), 2)    AS productos_por_orden,\r\n",
+        "       ROUND(AVG(promedio_dias_entre_ordenes), 1) AS dias_entre_ordenes,\r\n",
+        "       ROUND(AVG(tasa_recompra) * 100, 1)         AS tasa_recompra_pct\r\n",
+        "FROM catalog_prod.golden.segmentos_clientes\r\n",
+        "GROUP BY segmento\r\n",
+        "ORDER BY clientes DESC;"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "1685a7c0",
+      "displayName": "Untitled page",
+      "layout": [
+        {
+          "widget": {
+            "name": "ventas-recompra-departamento",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "92a9e68f",
+                  "fields": [
+                    {
+                      "name": "departamento",
+                      "expression": "`departamento`"
+                    },
+                    {
+                      "name": "sum(total_productos_vendidos)",
+                      "expression": "SUM(`total_productos_vendidos`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Ventas y recompra por departamento",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "annotations": [
+                {
+                  "type": "horizontal-line",
+                  "encodings": {
+                    "y": {
+                      "dataValue": "94000",
+                      "dataType": "INTEGER"
+                    }
+                  }
+                }
+              ],
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  }
+                ]
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "departamento",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(total_productos_vendidos)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "ordenes-por-dia-y-hora",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "7accd691",
+                  "fields": [
+                    {
+                      "name": "sum(total_ordenes)",
+                      "expression": "SUM(`total_ordenes`)"
+                    },
+                    {
+                      "name": "hora_dia",
+                      "expression": "`hora_dia`"
+                    },
+                    {
+                      "name": "dia_semana",
+                      "expression": "`dia_semana`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Órdenes por día y hora.",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "heatmap",
+              "encodings": {
+                "x": {
+                  "fieldName": "hora_dia",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "dia_semana",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "sum(total_ordenes)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "segmentos-de-clientes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "43a0bdb7",
+                  "fields": [
+                    {
+                      "name": "sum(clientes)",
+                      "expression": "SUM(`clientes`)"
+                    },
+                    {
+                      "name": "segmento",
+                      "expression": "`segmento`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Segmentos de clientes",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "sum(clientes)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "segmento",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 7,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}

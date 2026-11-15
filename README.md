@@ -189,7 +189,7 @@ Delta Sharing permite compartir tablas de Unity Catalog con alguien que no tiene
 
 ## Dashboard
 
-El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golden`. Las consultas están en `dashboard/queries_dashboard.ipynb`.
+El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golden`. Las consultas están en `dashboard/queries_dashboard.ipynb` y la definición del dashboard, exportada desde Databricks, en `dashboard/dashboard_instacart.lvdash.json`.
 
 ![Dashboard Instacart](dashboard/dashboard_instacart.png)
 
