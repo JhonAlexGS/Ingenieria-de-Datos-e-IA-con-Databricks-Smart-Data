@@ -2,7 +2,7 @@
 
 Proyecto final del curso Ingeniería de Datos e IA con Databricks.
 
-Se desarrolló un ETL en Azure Databricks con arquitectura medallion (bronze, silver y golden) usando PySpark. Los datos se leen desde un Azure Data Lake Storage Gen2 mediante Managed Identity, las tablas se gobiernan con Unity Catalog y el despliegue a producción se realiza con GitHub Actions. Los resultados se muestran en un dashboard de Databricks.
+Se desarrolló un ETL en Azure Databricks con arquitectura medallion (bronze, silver y golden) usando PySpark. Los datos se leen desde un Azure Data Lake Storage Gen2 mediante Managed Identity, las tablas se gobiernan con Unity Catalog y el despliegue a producción se realiza con GitHub Actions. Los resultados se muestran en un dashboard de Databricks y en un reporte de Power BI.
 
 ## Índice
 
@@ -20,6 +20,7 @@ Se desarrolló un ETL en Azure Databricks con arquitectura medallion (bronze, si
    - [Delta Sharing](#delta-sharing)
 8. [Reversión](#reversión)
 9. [Dashboard](#dashboard)
+   - [Power BI](#power-bi)
 10. [Estructura del repositorio](#estructura-del-repositorio)
 11. [Pasos para el despliegue](#pasos-para-el-despliegue)
 12. [Evidencias](#evidencias)
@@ -198,6 +199,16 @@ El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golde
 ![Dashboard Instacart](dashboard/dashboard_instacart.png)
 
 Produce y Dairy Eggs son los departamentos con más productos vendidos, y la mayor parte de las órdenes se concentra entre las 9 y las 17 horas.
+
+### Power BI
+
+Además se construyó un reporte en Power BI Desktop. Se conecta con el conector de Databricks al SQL Warehouse del workspace (autenticación con token) e importa las cuatro tablas de `catalog_prod.golden`.
+
+El reporte incluye segmentaciones por departamento y producto, tarjetas con el total de productos vendidos, órdenes y clientes, productos vendidos por departamento, clientes por segmento, productos más comprados, el top de productos por departamento y las órdenes por día de la semana.
+
+![Reporte Power BI](dashboard/powerbi_instacart.png)
+
+Archivo del reporte: `dashboard/dashboard_instacart.pbix`.
 
 ## Estructura del repositorio
 
