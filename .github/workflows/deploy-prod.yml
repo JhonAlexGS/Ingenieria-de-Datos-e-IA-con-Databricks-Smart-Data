@@ -120,3 +120,60 @@ jobs:
             sleep 30
           done
           echo "::error::Tiempo de espera agotado"; exit 1
+
+  # Solo se ejecuta si falla el despliegue o el workflow. Elimina las tablas,
+  # carpetas y schemas de catalog_prod para que el siguiente despliegue
+  # empiece desde un ambiente limpio. El catalogo y la capa raw se mantienen.
+  rollback:
+    name: Reversion en prod
+    needs: [deploy, run]
+    if: failure()
+    runs-on: ubuntu-latest
+    env:
+      REVERSION_DIR: /Shared/instacart/reversion
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Importar notebook de reversion
+        run: |
+          set -euo pipefail
+          curl -sS --fail-with-body -X POST "$DATABRICKS_HOST/api/2.0/workspace/mkdirs" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            -d "{\"path\": \"$REVERSION_DIR\"}"
+          jq -n --arg path "$REVERSION_DIR/drop_medallion" --arg content "$(base64 -w0 reversion/drop_medallion.ipynb)" \
+            '{path: $path, format: "JUPYTER", overwrite: true, content: $content}' \
+          | curl -sS --fail-with-body -X POST "$DATABRICKS_HOST/api/2.0/workspace/import" \
+              -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+              -H "Content-Type: application/json" -d @-
+
+      - name: Ejecutar reversion y esperar resultado
+        run: |
+          set -euo pipefail
+          RUN_ID=$(jq -n \
+              --arg cluster "$CLUSTER_ID" --arg nb "$REVERSION_DIR/drop_medallion" \
+              --arg cat "$CATALOGO" --arg st "$STORAGE_NAME" \
+              '{run_name: "reversion_instacart_prod",
+                tasks: [{task_key: "reversion", existing_cluster_id: $cluster,
+                         notebook_task: {notebook_path: $nb, source: "WORKSPACE",
+                           base_parameters: {catalogo: $cat, storage_name: $st,
+                                             eliminar_catalogo: "no", confirmar: "si"}}}]}' \
+            | curl -sS --fail-with-body -X POST "$DATABRICKS_HOST/api/2.1/jobs/runs/submit" \
+                -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+                -H "Content-Type: application/json" -d @- | jq -r .run_id)
+          echo "Run ID reversion: $RUN_ID"
+
+          for i in $(seq 1 60); do
+            RUN=$(curl -sS --fail-with-body -G "$DATABRICKS_HOST/api/2.1/jobs/runs/get" \
+                    -H "Authorization: Bearer $DATABRICKS_TOKEN" --data-urlencode "run_id=$RUN_ID")
+            LIFE=$(echo "$RUN" | jq -r .state.life_cycle_state)
+            RESULT=$(echo "$RUN" | jq -r '.state.result_state // "-"')
+            echo "[$(date +%H:%M:%S)] estado=$LIFE resultado=$RESULT"
+            case "$LIFE" in
+              TERMINATED|SKIPPED|INTERNAL_ERROR)
+                if [ "$RESULT" = "SUCCESS" ]; then echo "Reversion completada en $CATALOGO"; exit 0; fi
+                echo "::error::La reversion terminó con resultado $RESULT"; exit 1 ;;
+            esac
+            sleep 20
+          done
+          echo "::error::Tiempo de espera agotado"; exit 1
