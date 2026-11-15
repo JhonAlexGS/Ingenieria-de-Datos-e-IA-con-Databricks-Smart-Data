@@ -15,6 +15,8 @@ Con los datos de órdenes de un supermercado online se buscó responder:
 
 ## Arquitectura
 
+![Arquitectura](evidencias/00_arquitectura.png)
+
 ```mermaid
 flowchart LR
     RAW[(ADLS Gen2<br/>raw)] -->|Managed Identity| B[Bronze]
@@ -129,6 +131,9 @@ El archivo `.github/workflows/deploy-prod.yml` se ejecuta con cada push a `main`
 2. Reemplaza en el JSON del job el cluster, el catálogo `catalog_prod` y el storage.
 3. Crea el job o lo actualiza si ya existe.
 4. Ejecuta el job y espera a que termine. Si alguna tarea falla, el pipeline también falla.
+5. Si el despliegue o el job fallan, se ejecuta el job `rollback`, que corre `reversion/drop_medallion` sobre `catalog_prod` y deja el ambiente limpio para el siguiente despliegue.
+
+Solo se despliegan los notebooks de `proceso/`. El notebook de reversión se importa en `/Shared/instacart/reversion` únicamente cuando hay una falla.
 
 El desarrollo se hace en la rama `dev` y los cambios pasan a producción mediante un pull request a `main`.
 
@@ -148,16 +153,23 @@ Secrets configurados en el repositorio:
 | `ingenieros_datos` | lectura y escritura en bronze, silver y golden |
 | `analistas` | solo lectura en golden |
 
-Los permisos se asignan en la última tarea del workflow (`proceso/05_grants`). El script SQL equivalente está en `seguridad/grants.sql`. En `delta-sharing/` se encuentra el script para compartir la capa golden con un usuario externo.
+Los permisos se asignan en la última tarea del workflow (`proceso/05_grants`). La versión en SQL está en `seguridad/grants.ipynb`.
+
+### Delta Sharing
+
+Delta Sharing permite compartir tablas de Unity Catalog con alguien que no tiene acceso al workspace. Se crea un share con las tablas de KPIs de golden y un destinatario (recipient). El destinatario recibe un enlace de activación, descarga sus credenciales y lee las tablas desde Power BI, pandas o Spark, siempre con la última versión de los datos y sin copiarlos.
+
+- `delta-sharing/delta_sharing.ipynb`: crea el share `share_instacart_golden`, agrega las tablas, crea el recipient `recipient_area_comercial` y le otorga SELECT.
+- `delta-sharing/delta_sharing_sql.ipynb`: versión en SQL.
 
 ## Reversión
 
-- `reversion/drop_medallion.ipynb`: elimina las tablas, sus carpetas en el Data Lake, el checkpoint de Auto Loader y los schemas. Opcionalmente elimina el catálogo.
-- `reversion/drop_medallion.sql`: versión en SQL.
+- `reversion/drop_medallion.ipynb`: elimina las tablas, sus carpetas en el Data Lake, el checkpoint de Auto Loader y los schemas. Opcionalmente elimina el catálogo. Se ejecuta automáticamente desde GitHub Actions cuando falla el despliegue a producción.
+- `reversion/drop_medallion_sql.ipynb`: versión en SQL.
 
 ## Dashboard
 
-El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golden`. Las consultas están en `dashboard/queries_dashboard.sql`.
+El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golden`. Las consultas están en `dashboard/queries_dashboard.ipynb`.
 
 ![Dashboard Instacart](dashboard/dashboard_instacart.png)
 
@@ -178,6 +190,8 @@ Produce y Dairy Eggs son los departamentos con más productos vendidos, y la may
 └── certificaciones/
 ```
 
+Todos los scripts son notebooks `.ipynb`. Los de `proceso/` están en PySpark; los scripts SQL de `PrepAmb/`, `seguridad/`, `reversion/`, `delta-sharing/` y `dashboard/` usan celdas con el magic command `%sql`.
+
 ## Pasos para el despliegue
 
 1. Crear el storage account con hierarchical namespace y los contenedores `raw`, `bronze`, `silver`, `golden` y `catalog`.
@@ -193,6 +207,7 @@ Produce y Dairy Eggs son los departamentos con más productos vendidos, y la may
 
 | Evidencia | Archivo |
 |---|---|
+| Arquitectura | `evidencias/00_arquitectura.png` |
 | Recursos en Azure | `evidencias/01_recursos_azure.png` |
 | Rol del Access Connector en el storage | `evidencias/02_managed_identity.png` |
 | External locations | `evidencias/03_external_locations.png` |
