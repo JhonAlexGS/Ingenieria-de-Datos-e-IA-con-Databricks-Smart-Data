@@ -159,6 +159,10 @@ Los permisos se asignan en la última tarea del workflow (`proceso/05_grants`). 
 
 El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golden`. Las consultas están en `dashboard/queries_dashboard.sql`.
 
+![Dashboard Instacart](dashboard/dashboard_instacart.png)
+
+Produce y Dairy Eggs son los departamentos con más productos vendidos, y la mayor parte de las órdenes se concentra entre las 9 y las 17 horas.
+
 ## Estructura del repositorio
 
 ```
@@ -194,5 +198,5 @@ El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golde
 | External locations | `evidencias/03_external_locations.png` |
 | Catálogos y tablas | `evidencias/04_unity_catalog.png` |
 | Ejecución de GitHub Actions | `evidencias/05_github_actions.png` |
-| Ejecución del workflow en producción | `evidencias/06_workflow_prod.png` |
+| Ejecución del workflow en producción | `evidencias/06_workflow_prod.png`, `evidencias/06_workflow_prod2.png` |
 | Grants por grupo | `evidencias/07_grants.png` |

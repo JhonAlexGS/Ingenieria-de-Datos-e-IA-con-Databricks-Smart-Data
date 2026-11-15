@@ -21,7 +21,8 @@ FROM catalog_prod.golden.top_productos
 ORDER BY departamento, ranking;
 
 -- Ordenes por dia y hora
-SELECT dia_semana_num, dia_semana, hora_dia, total_ordenes
+SELECT CONCAT(dia_semana_num, ' - ', dia_semana) AS dia_semana,
+       hora_dia, total_ordenes
 FROM catalog_prod.golden.actividad_dia_hora
 ORDER BY dia_semana_num, hora_dia;
 
