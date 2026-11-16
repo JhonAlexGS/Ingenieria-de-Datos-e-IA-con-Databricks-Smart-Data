@@ -23,7 +23,8 @@ Se desarrolló un ETL en Azure Databricks con arquitectura medallion (bronze, si
    - [Power BI](#power-bi)
 10. [Estructura del repositorio](#estructura-del-repositorio)
 11. [Pasos para el despliegue](#pasos-para-el-despliegue)
-12. [Evidencias](#evidencias)
+12. [Documentación del desarrollo](#documentación-del-desarrollo)
+13. [Evidencias](#evidencias)
 
 ## Objetivo
 
@@ -219,10 +220,10 @@ Archivo del reporte: `dashboard/dashboard_instacart.pbix`.
 ├── seguridad/           grants
 ├── delta-sharing/       script de Delta Sharing
 ├── reversion/           eliminación de objetos
-├── dashboard/           consultas y capturas del dashboard
+├── dashboard/           dashboard de Databricks y reporte de Power BI
 ├── datasets/            archivos CSV
 ├── evidencias/          capturas del proyecto
-└── certificaciones/
+└── docs/                paso a paso del desarrollo con capturas
 ```
 
 Todos los scripts son notebooks `.ipynb`. Los de `proceso/` están en PySpark; los scripts SQL de `PrepAmb/`, `seguridad/`, `reversion/`, `delta-sharing/` y `dashboard/` usan celdas con el magic command `%sql`.
@@ -237,6 +238,10 @@ Todos los scripts son notebooks `.ipynb`. Los de `proceso/` están en PySpark; l
 6. Ejecutar `proceso/01_prep_ambiente` (o los scripts de `PrepAmb/`) y luego los demás notebooks en orden, con `catalogo = catalog_dev`.
 7. Crear los grupos `ingenieros_datos` y `analistas`.
 8. Configurar los secrets en GitHub y hacer merge a `main` para desplegar en producción.
+
+## Documentación del desarrollo
+
+En [`docs/paso_a_paso.md`](docs/paso_a_paso.md) se encuentran los apuntes de todo el desarrollo, con capturas de cada paso: creación de los recursos en Azure, Managed Identity, cluster, storage credential, conexión con Git, ejecución en desarrollo, grupos, token, secrets de GitHub, despliegue a producción, dashboard, Delta Sharing y Power BI.
 
 ## Evidencias
 
