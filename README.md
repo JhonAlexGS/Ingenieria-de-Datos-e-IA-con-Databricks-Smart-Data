@@ -2,7 +2,7 @@
 
 Proyecto final del curso Ingeniería de Datos e IA con Databricks.
 
-Se desarrolló un ETL en Azure Databricks con arquitectura medallion (bronze, silver y golden) usando PySpark. Los datos se leen desde un Azure Data Lake Storage Gen2 mediante Managed Identity, las tablas se gobiernan con Unity Catalog y el despliegue a producción se realiza con GitHub Actions. Los resultados se muestran en un dashboard de Databricks.
+Se desarrolló un ETL en Azure Databricks con arquitectura medallion (bronze, silver y golden) usando PySpark. Los datos se leen desde un Azure Data Lake Storage Gen2 mediante Managed Identity, las tablas se gobiernan con Unity Catalog y el despliegue a producción se realiza con GitHub Actions. Los resultados se muestran en un dashboard de Databricks y en un reporte de Power BI.
 
 ## Índice
 
@@ -20,9 +20,11 @@ Se desarrolló un ETL en Azure Databricks con arquitectura medallion (bronze, si
    - [Delta Sharing](#delta-sharing)
 8. [Reversión](#reversión)
 9. [Dashboard](#dashboard)
+   - [Power BI](#power-bi)
 10. [Estructura del repositorio](#estructura-del-repositorio)
 11. [Pasos para el despliegue](#pasos-para-el-despliegue)
-12. [Evidencias](#evidencias)
+12. [Documentación del desarrollo](#documentación-del-desarrollo)
+13. [Evidencias](#evidencias)
 
 ## Objetivo
 
@@ -199,6 +201,16 @@ El dashboard se construyó en Databricks sobre las tablas de `catalog_prod.golde
 
 Produce y Dairy Eggs son los departamentos con más productos vendidos, y la mayor parte de las órdenes se concentra entre las 9 y las 17 horas.
 
+### Power BI
+
+Además se construyó un reporte en Power BI Desktop. Se conecta con el conector de Databricks al SQL Warehouse del workspace (autenticación con token) e importa las cuatro tablas de `catalog_prod.golden`.
+
+El reporte incluye segmentaciones por departamento y producto, tarjetas con el total de productos vendidos, órdenes y clientes, productos vendidos por departamento, clientes por segmento, productos más comprados, el top de productos por departamento y las órdenes por día de la semana.
+
+![Reporte Power BI](dashboard/powerbi_instacart.png)
+
+Archivo del reporte: `dashboard/dashboard_instacart.pbix`.
+
 ## Estructura del repositorio
 
 ```
@@ -208,10 +220,10 @@ Produce y Dairy Eggs son los departamentos con más productos vendidos, y la may
 ├── seguridad/           grants
 ├── delta-sharing/       script de Delta Sharing
 ├── reversion/           eliminación de objetos
-├── dashboard/           consultas y capturas del dashboard
+├── dashboard/           dashboard de Databricks y reporte de Power BI
 ├── datasets/            archivos CSV
 ├── evidencias/          capturas del proyecto
-└── certificaciones/
+└── docs/                paso a paso del desarrollo con capturas
 ```
 
 Todos los scripts son notebooks `.ipynb`. Los de `proceso/` están en PySpark; los scripts SQL de `PrepAmb/`, `seguridad/`, `reversion/`, `delta-sharing/` y `dashboard/` usan celdas con el magic command `%sql`.
@@ -226,6 +238,10 @@ Todos los scripts son notebooks `.ipynb`. Los de `proceso/` están en PySpark; l
 6. Ejecutar `proceso/01_prep_ambiente` (o los scripts de `PrepAmb/`) y luego los demás notebooks en orden, con `catalogo = catalog_dev`.
 7. Crear los grupos `ingenieros_datos` y `analistas`.
 8. Configurar los secrets en GitHub y hacer merge a `main` para desplegar en producción.
+
+## Documentación del desarrollo
+
+En [`docs/paso_a_paso.md`](docs/paso_a_paso.md) se encuentran los apuntes de todo el desarrollo, con capturas de cada paso: creación de los recursos en Azure, Managed Identity, cluster, storage credential, conexión con Git, ejecución en desarrollo, grupos, token, secrets de GitHub, despliegue a producción, dashboard, Delta Sharing y Power BI.
 
 ## Evidencias
 
